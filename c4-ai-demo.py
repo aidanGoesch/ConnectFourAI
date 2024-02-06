@@ -67,7 +67,7 @@ class ConnectFour:
         winner = connectfour.winner(self.game_state)
 
         if winner == 0:
-            if connectfour.is_full(self.game_state):
+            if self.game_state.is_full():
                 self.winner = 0
                 return True
             else:
@@ -92,8 +92,7 @@ class ConnectFour:
                 break
 
             if self.turn == 2:
-                ai_move = c4.mini_max(self.game_state, alpha = -math.inf, beta = math.inf,
-                                                maximizing_player = True, depth = 6)[0]
+                ai_move = c4.minimax(self.game_state, depth = 7)[0]
                 self.game_state = connectfour.drop(self.game_state, ai_move)
                 self.turn = 1
 

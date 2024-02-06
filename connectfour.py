@@ -76,7 +76,7 @@ class GameState:
 
     def drop(self, col : int) -> None:
         _require_valid_column_number(col, self.board)
-        _require_game_not_over(self)  # O(n^2)
+        # _require_game_not_over(self)  # O(n^2)
 
         empty_row = _find_bottom_empty_row_in_column(self.board, col)
         self.most_recent_drop_stack.append(empty_row)
@@ -99,9 +99,6 @@ class GameState:
         else:
             print("fuck")
             quit()
-
-
-
 
 
 # This is the simplest example of how you create new kinds of exceptions
@@ -187,6 +184,46 @@ def drop(game_state: GameState, column_number: int) -> GameState:
         tmp.moves_left -= 1
         return tmp
 
+def _require_valid_column_number(column_number: int, board: list[list[int]]) -> None:
+    '''Raises a ValueError if its parameter is not a valid column number'''
+    if type(column_number) != int or not _is_valid_column_number(column_number, board):
+        raise ValueError(f'column_number must be an int between 0 and {_board_columns(board) - 1}')
+
+
+
+def _require_game_not_over(game_state: GameState) -> None:
+    '''
+    Raises a GameOverError if the given game state represents a situation
+    where the game is over (i.e., there is a winning player)
+    '''
+    if winner(game_state) != EMPTY:
+        # print(game_state.board)
+        raise GameOverError()
+
+
+
+def _is_valid_column_number(column_number: int, board: list[list[int]]) -> bool:
+    '''Returns True if the given column number is valid; returns False otherwise'''
+    return 0 <= column_number < _board_columns(board)
+
+
+
+def _is_valid_row_number(row_number: int, board: list[list[int]]) -> bool:
+    '''Returns True if the given row number is valid; returns False otherwise'''
+    return 0 <= row_number < _board_rows(board)
+
+
+def _require_valid_column_count(columns: int) -> None:
+    '''Raises a ValueError if the given number of columns is invalid.'''
+    if not MIN_COLUMNS <= columns <= MAX_COLUMNS:
+        raise ValueError(f'columns must be an int between {MIN_COLUMNS} and {MAX_COLUMNS}')
+
+
+def _require_valid_row_count(rows: int) -> None:
+    '''Raises a ValueError if the given number of rows is invalid.'''
+    if not MIN_ROWS <= rows <= MAX_ROWS:
+        raise ValueError(f'rows must be an int between {MIN_ROWS} and {MAX_ROWS}')
+
 
 def dropable(game_state: GameState, column:int):
     return _find_bottom_empty_row_in_column(game_state.board, column) != -1
@@ -236,67 +273,52 @@ def winner(game_state: GameState) -> int:
 
     return winner
 
-def is_winning_move(game_state : GameState, col : int) -> bool:
-    row = find_bottom_of_row(game_state.board, col)
-    print("row", row, "col", col)
-    # print(game_state.board, col, row)
-    # def _winning_sequence_begins_at(board: list[list[int]], col: int, row: int) -> bool:
-    return 0 != _winning_sequence_begins_at(game_state.board, col, row)
-
+def is_winning_move(game_state : GameState, col : int, turn) -> bool:
     game_board = game_state.board
+    row = find_bottom_of_row(game_state.board, col)
+    # print("row", row, "col", col)
 
-    left_diagonal = compile_diagonal(game_board, row, col + 1, 1)
-    right_diagonal = compile_diagonal(game_board, row, col + 1, -1)
-
-    print(left_diagonal)
-    print(right_diagonal)
-    print(game_board[col])
-
-    # print(row)
     row_list = compile_row(game_board, row)
 
-    # print("row:", row_list)
-    # print("col:", game_board[col])
-
-    return four_in_a_row(row_list) or four_in_a_row(game_board[col])\
-        or four_in_a_row(left_diagonal) or four_in_a_row(right_diagonal)
-
-def compile_diagonal(game_board : list[list], col : int, row : int, x_offset : int) -> list:
-    """x_offset of -1 is up and right
-        x_offset of 1 is up and left"""
-
-    diagonals = []
-    y = row
-    x = col
-
-    x_bound = len(game_board[0])
-    y_bound = len(game_board)
-
-    tmpx, tmpy = x, y
+    if four_in_a_row(row_list) or four_in_a_row(game_board[col]):
+        return True
 
 
-    while x_bound > tmpx >= 0 and y_bound > tmpy >= 0:
-        # print(tmpy, tmpx)
-        tmpx -= x_offset
-        tmpy -= 1
+    starty, startx = col - 3, row - 3
+    consecutive = 1
 
-    tmpx += x_offset
-    tmpy += 1
+    while starty < len(game_board):
+        if 0 <= startx < len(game_board[0]) and starty >= 0:
+            if game_board[starty][startx] == turn:
+                consecutive += 1
 
-    print(tmpy, tmpx)
+                if consecutive == 4:
+                    # print(turn)
+                    return True
+            else:
+                consecutive = 1
 
-    # 3 0
-    # 2 1
-    # 1 2
-    # 0 3
+        startx += 1
+        starty += 1
 
-    while x_bound > tmpx >= 0 and y_bound > tmpy >= 0:
-        # print(tmpy, tmpx)
-        diagonals.append(game_board[tmpy][tmpx])
-        tmpx += x_offset
-        tmpy += 1
+    starty, startx = col - 3, row + 3
+    consecutive = 1
 
-    return diagonals
+    while starty < len(game_board):
+        if 0 <= startx < len(game_board[0]) and starty >= 0:
+            if game_board[starty][startx] == turn:
+                consecutive += 1
+
+                if consecutive == 4:
+                    # print(turn)
+                    return True
+            else:
+                consecutive = 1
+
+        startx -= 1
+        starty += 1
+
+    return False
 
 
 def compile_row(game_board : list[list], row):
@@ -306,7 +328,6 @@ def compile_row(game_board : list[list], row):
         ret.append(game_board[i][row])
 
     return ret
-
 
 
 def four_in_a_row(elements : list):
@@ -319,12 +340,6 @@ def four_in_a_row(elements : list):
         else:
             count = 1
     return False
-
-def is_full(game_state: GameState):
-    for i in game_state.board:
-        if 0 in i:
-            return False
-    return True
 
 # Modules often contain functions, variables, or classes whose names begin
 # with underscores.  This is no accident; in Python, this is the agreed-upon
@@ -392,7 +407,7 @@ def _find_bottom_empty_row_in_column(board: list[list[int]], column_number: int)
 
 
 def find_bottom_of_row(board : list[list], col):
-    print(board[col])
+    # print(board[col])
     for i in range(len(board[col]) - 1, -1, -1):
         # print(board[col][i], i)
         if board[col][i] == EMPTY:
@@ -522,45 +537,7 @@ def _two_in_a_row(board: list[list[int]], col: int, row: int, coldelta: int, row
         return True
 
 
-def _require_valid_column_number(column_number: int, board: list[list[int]]) -> None:
-    '''Raises a ValueError if its parameter is not a valid column number'''
-    if type(column_number) != int or not _is_valid_column_number(column_number, board):
-        raise ValueError(f'column_number must be an int between 0 and {_board_columns(board) - 1}')
 
-
-
-def _require_game_not_over(game_state: GameState) -> None:
-    '''
-    Raises a GameOverError if the given game state represents a situation
-    where the game is over (i.e., there is a winning player)
-    '''
-    if winner(game_state) != EMPTY:
-        print(game_state.board)
-        raise GameOverError()
-
-
-
-def _is_valid_column_number(column_number: int, board: list[list[int]]) -> bool:
-    '''Returns True if the given column number is valid; returns False otherwise'''
-    return 0 <= column_number < _board_columns(board)
-
-
-
-def _is_valid_row_number(row_number: int, board: list[list[int]]) -> bool:
-    '''Returns True if the given row number is valid; returns False otherwise'''
-    return 0 <= row_number < _board_rows(board)
-
-
-def _require_valid_column_count(columns: int) -> None:
-    '''Raises a ValueError if the given number of columns is invalid.'''
-    if not MIN_COLUMNS <= columns <= MAX_COLUMNS:
-        raise ValueError(f'columns must be an int between {MIN_COLUMNS} and {MAX_COLUMNS}')
-
-
-def _require_valid_row_count(rows: int) -> None:
-    '''Raises a ValueError if the given number of rows is invalid.'''
-    if not MIN_ROWS <= rows <= MAX_ROWS:
-        raise ValueError(f'rows must be an int between {MIN_ROWS} and {MAX_ROWS}')
 
 
 
@@ -573,26 +550,19 @@ if __name__ == '__main__':
     # for i in g.board:
     #     print(i)
     # print(is_winning_move(g, 1))
-    # g = GameState()
-    # g.board = [[0, 0, 0, 0, 0, 0],
-    #  [0, 0, 0, 2, 2, 1],
-    #  [0, 2, 2, 1, 1, 2],
-    #  [0, 2, 1, 2, 2, 1],
-    #  [2, 1, 1, 2, 1, 2],
-    #  [0, 0, 0, 0, 1, 1],
-    #  [0, 0, 0, 0, 0, 1]]
-    # print(is_winning_move(g, 4))
-    # print(find_bottom_of_row([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 2], [2, 2, 2, 2, 1, 1], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]], 3))
-    # print(four_in_a_row([1, 2, 1, 2, 1, 2, 1, 2]))
+    g = GameState()
+    g.board = [[0, 0, 0, 0, 0, 1],
+     [0, 0, 0, 0, 1, 2],
+     [0, 0, 0, 1, 2, 2],
+     [0, 2, 1, 2, 1, 1],
+     [0, 0, 0, 0, 0, 2],
+     [0, 0, 0, 0, 0, 0],
+     [0, 0, 0, 0, 0, 1]]
+                # [0, 0, 1, 1, 1, 1]
+    print(is_winning_move(g, 1))
 
-    g = GameState(turn = 1)
-    print(g.most_recent_drop, g.turn, g.moves_left)
-    g.drop(3)
-    print(g.board)
-    print(g.most_recent_drop, g.turn, g.moves_left)
-    g.undo(3)
-    print(g.board)
-    print(g.most_recent_drop, g.turn, g.moves_left)
+
+
     # x = [[1, 2, 3],
     #      [4, 5, 6],
     #      [7, 8, 9]]
