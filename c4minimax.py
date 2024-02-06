@@ -120,27 +120,31 @@ def run() -> None:
 @lru_cache(maxsize=None)
 def mini_max(game_state: connectfour.GameState, alpha:int, beta:int, maximizing_player: bool = True, depth:int = 0):
     """function responsible for scoring each state of the board"""
-    winner = connectfour.winner(game_state)
-    is_full = connectfour.is_full(game_state)
-    if winner != 0 or depth == 0 or is_full:
-        if winner == 1:
-            return (None, -1000000)
-        elif winner == 2:
-            return (None, 1000000)
-        elif is_full:
-            return (None, 0)
-        elif depth == 0:
-            # c4.print_board(game_state)
-            # print('\n\n')
-            return (None, connectfour.score_board(game_state))
 
+    if depth == 0:
+        return None, connectfour.score_board(game_state)
+
+    # print(game_state.board, game_state.turn)
 
     if maximizing_player:
         best_score = -math.inf
         best_col = 3
         for i in MOVE_ORDER:
             if connectfour.dropable(game_state, i):
-                score = mini_max(connectfour.drop(game_state, i), alpha, beta, maximizing_player=False, depth=depth - 1)[1]
+                game_state.drop(i)
+                # print(2, connectfour.winner(game_state))
+                # tmp = connectfour.drop(game_state, i)
+                # print(tmp.board, game_state.turn, i)
+                if connectfour.winner(game_state) == 2:
+                    game_state.undo(i)
+                    return (i, 1000000)
+                elif game_state.is_full():
+                    game_state.undo(i)
+                    return (3, 0)
+                else:
+                    score = mini_max(game_state, alpha, beta, maximizing_player=False, depth=depth - 1)[1]
+                    game_state.undo(i)
+
                 if score > best_score:
                     best_score = score
                     best_col = i
@@ -155,7 +159,21 @@ def mini_max(game_state: connectfour.GameState, alpha:int, beta:int, maximizing_
         best_col = 3
         for i in MOVE_ORDER:
             if connectfour.dropable(game_state, i):
-                score = mini_max(connectfour.drop(game_state, i), alpha, beta, maximizing_player=True, depth=depth - 1)[1]
+                # tmp = connectfour.drop(game_state, i)
+                game_state.drop(i)
+                # print(1, connectfour.winner(game_state))
+
+                if connectfour.winner(game_state) == 1:
+                    game_state.undo(i)
+                    return (i, -1000000)
+                elif game_state.is_full():
+                    game_state.undo(i)
+                    return (3, 0)
+                else:
+                    # print(tmp.board, game_state.turn, i)
+                    score = mini_max(game_state, alpha, beta, maximizing_player=True, depth=depth - 1)[1]
+                    game_state.undo(i)
+
                 if score < best_score:
                     best_score = score
                     best_col = i

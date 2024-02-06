@@ -35,6 +35,8 @@ MAX_COLUMNS = 20
 MIN_ROWS = 4
 MAX_ROWS = 20
 
+import numpy as np
+
 
 # GameState is a namedtuple that tracks everything important about
 # the state of a Connect Four game as it progresses.  It contains
@@ -57,6 +59,9 @@ class GameState:
         else:
             self.board = board
         self.turn = turn
+        self.moves_left = 41
+
+        self.most_recent_drop_stack = []
 
     def __hash__(self):
         temp_board = self.board[::]
@@ -64,6 +69,36 @@ class GameState:
             temp_board[i] = tuple(temp_board[i])
         temp_board = tuple(temp_board)
         return hash((temp_board, self.turn))
+
+    def is_full(self) -> bool:
+        return self.moves_left == 0
+
+
+    def drop(self, col : int) -> None:
+        _require_valid_column_number(col, self.board)
+        _require_game_not_over(self)  # O(n^2)
+
+        empty_row = _find_bottom_empty_row_in_column(self.board, col)
+        self.most_recent_drop_stack.append(empty_row)
+
+        if empty_row == -1:
+            raise InvalidMoveError()
+        else:
+            self.board[col][empty_row] = self.turn
+            self.turn = _opposite_turn(self.turn)
+            self.moves_left -= 1
+
+
+
+    def undo(self, col : int) -> None:
+        if len(self.most_recent_drop_stack) > 0:
+            self.board[col][self.most_recent_drop_stack.pop(-1)] = 0
+            self.turn = _opposite_turn(self.turn)
+            self.moves_left += 1
+            # self.most_recent_drop
+        else:
+            print("fuck")
+            quit()
 
 
 
@@ -148,7 +183,9 @@ def drop(game_state: GameState, column_number: int) -> GameState:
         new_board = _copy_game_board(game_state.board)
         new_board[column_number][empty_row] = game_state.turn
         new_turn = _opposite_turn(game_state.turn)
-        return GameState(board = new_board, turn = new_turn)
+        tmp = GameState(board = new_board, turn = new_turn)
+        tmp.moves_left -= 1
+        return tmp
 
 
 def dropable(game_state: GameState, column:int):
@@ -198,7 +235,91 @@ def winner(game_state: GameState) -> int:
                     return _opposite_turn(game_state.turn)
 
     return winner
-    
+
+def is_winning_move(game_state : GameState, col : int) -> bool:
+    row = find_bottom_of_row(game_state.board, col)
+    print("row", row, "col", col)
+    # print(game_state.board, col, row)
+    # def _winning_sequence_begins_at(board: list[list[int]], col: int, row: int) -> bool:
+    return 0 != _winning_sequence_begins_at(game_state.board, col, row)
+
+    game_board = game_state.board
+
+    left_diagonal = compile_diagonal(game_board, row, col + 1, 1)
+    right_diagonal = compile_diagonal(game_board, row, col + 1, -1)
+
+    print(left_diagonal)
+    print(right_diagonal)
+    print(game_board[col])
+
+    # print(row)
+    row_list = compile_row(game_board, row)
+
+    # print("row:", row_list)
+    # print("col:", game_board[col])
+
+    return four_in_a_row(row_list) or four_in_a_row(game_board[col])\
+        or four_in_a_row(left_diagonal) or four_in_a_row(right_diagonal)
+
+def compile_diagonal(game_board : list[list], col : int, row : int, x_offset : int) -> list:
+    """x_offset of -1 is up and right
+        x_offset of 1 is up and left"""
+
+    diagonals = []
+    y = row
+    x = col
+
+    x_bound = len(game_board[0])
+    y_bound = len(game_board)
+
+    tmpx, tmpy = x, y
+
+
+    while x_bound > tmpx >= 0 and y_bound > tmpy >= 0:
+        # print(tmpy, tmpx)
+        tmpx -= x_offset
+        tmpy -= 1
+
+    tmpx += x_offset
+    tmpy += 1
+
+    print(tmpy, tmpx)
+
+    # 3 0
+    # 2 1
+    # 1 2
+    # 0 3
+
+    while x_bound > tmpx >= 0 and y_bound > tmpy >= 0:
+        # print(tmpy, tmpx)
+        diagonals.append(game_board[tmpy][tmpx])
+        tmpx += x_offset
+        tmpy += 1
+
+    return diagonals
+
+
+def compile_row(game_board : list[list], row):
+    ret = []
+
+    for i in range(len(game_board)):
+        ret.append(game_board[i][row])
+
+    return ret
+
+
+
+def four_in_a_row(elements : list):
+    count = 1
+    for i in range(1, len(elements)):
+        if elements[i] == elements[i-1] != 0:
+            count += 1
+            if count == 4:
+                return True
+        else:
+            count = 1
+    return False
+
 def is_full(game_state: GameState):
     for i in game_state.board:
         if 0 in i:
@@ -268,6 +389,16 @@ def _find_bottom_empty_row_in_column(board: list[list[int]], column_number: int)
             return i
 
     return -1
+
+
+def find_bottom_of_row(board : list[list], col):
+    print(board[col])
+    for i in range(len(board[col]) - 1, -1, -1):
+        # print(board[col][i], i)
+        if board[col][i] == EMPTY:
+            return i + 1
+
+    return 0
 
 
 
@@ -345,6 +476,23 @@ def _four_in_a_row(board: list[list[int]], col: int, row: int, coldelta: int, ro
                 return False
         return True
 
+def _possible_four_in_a_rows(board: list[list[int]], col: int, row: int, coldelta: int, rowdelta: int) -> bool:
+    '''
+    Returns True if a winning sequence of pieces appears on the board
+    beginning in the given column and row and extending in a direction
+    specified by the coldelta and rowdelta
+    '''
+    start_cell = board[col][row]
+
+    if start_cell == EMPTY:
+        return False
+    else:
+        for i in range(1, 4):
+            if not _is_valid_column_number(col + coldelta * i, board) \
+                    or not _is_valid_row_number(row + rowdelta * i, board) \
+                    or board[col + coldelta *i][row + rowdelta * i] != start_cell:
+                return False
+        return True
 
 def _three_in_a_row(board: list[list[int]], col: int, row: int, coldelta: int, rowdelta: int) -> bool:
     start_cell = board[col][row]
@@ -387,6 +535,7 @@ def _require_game_not_over(game_state: GameState) -> None:
     where the game is over (i.e., there is a winning player)
     '''
     if winner(game_state) != EMPTY:
+        print(game_state.board)
         raise GameOverError()
 
 
@@ -416,11 +565,37 @@ def _require_valid_row_count(rows: int) -> None:
 
 
 if __name__ == '__main__':
-    g = GameState(turn=1)
-    # drop(g, 1)
-    for i in range(5):
-        g = drop(g, 1)
+    # g = GameState(turn=1)
+    #
+    # for i in range(5):
+    #     g = drop(g, 1)
+    # #
+    # for i in g.board:
+    #     print(i)
+    # print(is_winning_move(g, 1))
+    # g = GameState()
+    # g.board = [[0, 0, 0, 0, 0, 0],
+    #  [0, 0, 0, 2, 2, 1],
+    #  [0, 2, 2, 1, 1, 2],
+    #  [0, 2, 1, 2, 2, 1],
+    #  [2, 1, 1, 2, 1, 2],
+    #  [0, 0, 0, 0, 1, 1],
+    #  [0, 0, 0, 0, 0, 1]]
+    # print(is_winning_move(g, 4))
+    # print(find_bottom_of_row([[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 2], [2, 2, 2, 2, 1, 1], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]], 3))
+    # print(four_in_a_row([1, 2, 1, 2, 1, 2, 1, 2]))
 
+    g = GameState(turn = 1)
+    print(g.most_recent_drop, g.turn, g.moves_left)
+    g.drop(3)
     print(g.board)
-    print(dropable(g, 1))
+    print(g.most_recent_drop, g.turn, g.moves_left)
+    g.undo(3)
+    print(g.board)
+    print(g.most_recent_drop, g.turn, g.moves_left)
+    # x = [[1, 2, 3],
+    #      [4, 5, 6],
+    #      [7, 8, 9]]
+
+    # print(compile_diagonal(x, 0, 2, -1, 1))
 
