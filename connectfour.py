@@ -233,18 +233,12 @@ def score_board(game_state: GameState):
     opp = _opposite_turn(game_state.turn)
     for col in range(columns(game_state)):
         for row in range(rows(game_state)):
-            if _winning_sequence_begins_at(game_state.board, col, row) and game_state.board[col][row] == game_state.turn:
-                print("AAAAAAAAAAAAAAAAA")
-                score = math.inf
-            elif _three_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == game_state.turn:
+            if _three_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == game_state.turn:
                 score += 100
             elif _two_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == game_state.turn:
                 score += 10
 
-            elif _winning_sequence_begins_at(game_state.board, col, row) and game_state.board[col][row] == opp:
-                print("AAAAAAAAAAAAAAAAAAA")
-                score = -math.inf
-            elif _three_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == opp:
+            if _three_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == opp:
                 score -= 101
             elif _two_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == opp:
                 score -= 11
@@ -513,15 +507,21 @@ def _possible_four_in_a_rows(board: list[list[int]], col: int, row: int, coldelt
 
 def _three_in_a_row(board: list[list[int]], col: int, row: int, coldelta: int, rowdelta: int) -> bool:
     start_cell = board[col][row]
+    gaps = 0
 
     if start_cell == EMPTY:
         return False
     else:
         for i in range(1, 3):
             if not _is_valid_column_number(col + coldelta * i, board) \
-                    or not _is_valid_row_number(row + rowdelta * i, board) \
-                    or board[col + coldelta *i][row + rowdelta * i] != start_cell:
+                    or not _is_valid_row_number(row + rowdelta * i, board):
                 return False
+
+            if board[col + coldelta *i][row + rowdelta * i] != start_cell:
+                if board[col + coldelta *i][row + rowdelta * i] == EMPTY and gaps < 1:
+                    gaps += 1
+                else:
+                    return False
         return True
 
 
@@ -554,16 +554,12 @@ if __name__ == '__main__':
     # print(is_winning_move(g, 1))
     g = GameState()
     g.turn = 1
-    g.board = [[0, 0, 0, 0, 0, 0],
-               [0, 0, 0, 0, 0, 0],
-               [0, 0, 2, 2, 1, 2],
-               [0, 0, 0, 2, 1, 1],
-               [0, 0, 0, 0, 2, 1],
-               [0, 0, 0, 0, 0, 1],
-               [0, 0, 0, 0, 0, 0]]
+    g.board = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 1, 2], [1, 2, 2, 2, 1, 1], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]]
                 # [0, 0, 1, 1, 1, 1]
-    print(is_winning_move(g, 2, 2))
+    # print(is_winning_move(g, 2, 2))
     # print(score_board(g))
+
+    print(dropable(g, 3))
 
 
     # x = [[1, 2, 3],
