@@ -35,6 +35,13 @@ class ConnectFour:
             x, y = pygame.mouse.get_pos()
             pygame.draw.circle(self._surface, RED, (x, 50), 40)
 
+        if self.winner != -1:
+            font = pygame.font.SysFont(None, 34)
+            text = font.render('PRESS ENTER TO RESET', True, (255, 255, 255))
+            textRect = text.get_rect()
+            textRect.center = (350, 50)
+            self._surface.blit(text, textRect)
+
 
         for j in range(6):
             y = 150 + j * 100
@@ -56,6 +63,10 @@ class ConnectFour:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self._running = False
+
+                if event.key == pygame.K_RETURN and self.winner != -1:
+                    self.reset()
+
             if event.type == pygame.MOUSEBUTTONUP and self.turn == 1 and self.winner == -1:
                 mouse_pos = pygame.mouse.get_pos()[0] // 100
                 # print(mouse_pos)
@@ -78,6 +89,11 @@ class ConnectFour:
         elif winner == 1 or winner == 2:
             self.winner = winner
             return True
+
+    def reset(self):
+        self.game_state = connectfour.new_game(7, 6)
+        self.turn = 1
+        self.winner = -1
 
     def highlight_winning_combo(self):
         winning_coords = connectfour.get_winning_pieces(self.game_state)
