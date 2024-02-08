@@ -92,7 +92,7 @@ class ConnectFour:
                 break
 
             if self.turn == 2:
-                ai_move = c4.minimax(self.game_state, depth = 7)[0]
+                ai_move = c4.minimax(self.game_state, depth = 6)[0]
                 self.game_state = connectfour.drop(self.game_state, ai_move)
                 self.turn = 1
 

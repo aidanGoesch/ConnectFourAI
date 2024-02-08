@@ -76,7 +76,7 @@ def run() -> None:
                             # if player tries to pop a piece that isn't theirs
                             print('You can only pop a column if the bottom piece is yours')
             else:
-                ai_move = mini_max(game_state, alpha = -math.inf, beta = math.inf, maximizing_player = True, depth = 9)[0]
+                ai_move = minimax(game_state, depth = 9)[0]
                 print('ai_move ', ai_move + 1)
                 game_state = connectfour.drop(game_state, ai_move)
 
@@ -97,25 +97,45 @@ def run() -> None:
         c4.print_board(game_state)
 
 
+def hash_state(game_state : connectfour.GameState, maximizing : bool):
+    tmp = [game_state.__hash__()]
+    tmp += [int(maximizing)]
+    # print(tmp)
+    return tuple(tmp)
+
+
 @lru_cache(maxsize=None)
 def minimax(game_state : connectfour.GameState, depth = 6):
+    transposition_table = dict()
     def alphabeta(alpha:int, beta:int, maximizing_player: bool = True, depth:int = 0):
         """function responsible for scoring each state of the board"""
 
+        hash_value = hash_state(game_state, maximizing_player)
+        if hash_value in transposition_table:
+            # c, s, a, b,
+            #
+            #
+            # if connectfour.dropable(game_state, transposition_table[hash_value][0]):
+                return transposition_table[hash_value]
+
+
         if depth == 0:
-            return None, connectfour.score_board(game_state)
+            transposition_table[hash_value] = (None, connectfour.score_board(game_state))
+            return transposition_table[hash_value]
 
-        connectfour._require_game_not_over(game_state)
 
-        # print(game_state.board, game_state.turn)
-
-        if maximizing_player:   # player 2
+        if maximizing_player:   # player 1
             best_score = -math.inf
             best_col = 3
             for i in MOVE_ORDER:
                 if connectfour.dropable(game_state, i):
+                    # print(game_state.board, 1, "turn =", game_state.turn)
                     game_state.drop(i)
+
+                    # print(game_state.board, 2, "turn =", game_state.turn)
                     if connectfour.is_winning_move(game_state, i, connectfour._opposite_turn(game_state.turn)):
+                        # print(game_state.board)
+
                         game_state.undo(i)
                         score = math.inf
                     elif game_state.is_full():
@@ -129,12 +149,17 @@ def minimax(game_state : connectfour.GameState, depth = 6):
                         best_score = score
                         best_col = i
                     alpha = max(alpha, best_score)
+
+                    # if depth == 6:
+                    #     print(i, score, best_col, alpha, beta)
+
                     if alpha >= beta:
                         break
-            return (best_col, best_score)
+            transposition_table[hash_value] = (best_col, best_score, alpha, beta)
+            return transposition_table[hash_value]
 
-        else:    # player 1
-            best_score = math.inf
+        else:    # player 2
+            best_score = 10000000
             best_col = 3
             for i in MOVE_ORDER:
                 if connectfour.dropable(game_state, i):
@@ -155,9 +180,24 @@ def minimax(game_state : connectfour.GameState, depth = 6):
                     beta = min(beta, best_score)
                     if alpha >= beta:
                         break
-            return (best_col, best_score)
+            transposition_table[hash_value] = (best_col, best_score, alpha, beta)
+            return transposition_table[hash_value]
 
-    return alphabeta(alpha = -math.inf, beta = math.inf, maximizing_player = True, depth = depth)
+
+    start_time = time.time()
+
+    optimal_move = (0, 0)
+    d = 4
+    while d <= 16 and time.time() - start_time < 1.0:
+        optimal_move = alphabeta(alpha = -math.inf, beta = math.inf, maximizing_player = True, depth = d)
+
+        print(d, time.time(), start_time, time.time() - start_time, optimal_move, game_state.board)
+        print(transposition_table)
+
+        d += 2
+
+    return optimal_move
+    # return alphabeta(alpha = -math.inf, beta = math.inf, maximizing_player = True, depth = depth)
 
 
 

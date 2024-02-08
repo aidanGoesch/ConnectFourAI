@@ -2,7 +2,7 @@
 #
 # ICS 32A Fall 2022
 # Project #2: Send Me On My Way
-
+import math
 '''
 This module contains the game logic that underlies a Connect Four
 game, implementing such functionality as tracking the state of a game,
@@ -35,8 +35,6 @@ MAX_COLUMNS = 20
 MIN_ROWS = 4
 MAX_ROWS = 20
 
-import numpy as np
-
 
 # GameState is a namedtuple that tracks everything important about
 # the state of a Connect Four game as it progresses.  It contains
@@ -64,12 +62,11 @@ class GameState:
         self.most_recent_drop_stack = []
 
     def __hash__(self):
-        temp_board = self.board[::]
-        for i in range(7):
-            temp_board[i] = tuple(temp_board[i])
-        temp_board = tuple(temp_board)
-        return hash((temp_board, self.turn))
+        hash_string = f"{self.turn}"
+        for row in self.board:
+            hash_string += "".join([str(x) for x in row])
 
+        return int(hash_string)
     def is_full(self) -> bool:
         return self.moves_left == 0
 
@@ -226,24 +223,30 @@ def _require_valid_row_count(rows: int) -> None:
 
 
 def dropable(game_state: GameState, column:int):
+    if column is None: return False
+
     return _find_bottom_empty_row_in_column(game_state.board, column) != -1
 
 
 def score_board(game_state: GameState):
     score = 0
+    opp = _opposite_turn(game_state.turn)
     for col in range(columns(game_state)):
         for row in range(rows(game_state)):
-            if _winning_sequence_begins_at(game_state.board, col, row) and game_state.board[col][row] == YELLOW:
-                score += 10001
-            elif _three_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == YELLOW:
+            if _winning_sequence_begins_at(game_state.board, col, row) and game_state.board[col][row] == game_state.turn:
+                print("AAAAAAAAAAAAAAAAA")
+                score = math.inf
+            elif _three_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == game_state.turn:
                 score += 100
-            elif _two_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == YELLOW:
+            elif _two_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == game_state.turn:
                 score += 10
-            elif _winning_sequence_begins_at(game_state.board, col, row) and game_state.board[col][row] == RED:
-                score -= 10000
-            elif _three_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == RED:
+
+            elif _winning_sequence_begins_at(game_state.board, col, row) and game_state.board[col][row] == opp:
+                print("AAAAAAAAAAAAAAAAAAA")
+                score = -math.inf
+            elif _three_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == opp:
                 score -= 101
-            elif _two_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == RED:
+            elif _two_in_a_row_begins_at(game_state.board, col, row) and game_state.board[col][row] == opp:
                 score -= 11
 
     return score
@@ -285,7 +288,7 @@ def is_winning_move(game_state : GameState, col : int, turn) -> bool:
 
 
     starty, startx = col - 3, row - 3
-    consecutive = 1
+    consecutive = 0
 
     while starty < len(game_board):
         if 0 <= startx < len(game_board[0]) and starty >= 0:
@@ -293,16 +296,15 @@ def is_winning_move(game_state : GameState, col : int, turn) -> bool:
                 consecutive += 1
 
                 if consecutive == 4:
-                    # print(turn)
                     return True
             else:
-                consecutive = 1
+                consecutive = 0
 
         startx += 1
         starty += 1
 
     starty, startx = col - 3, row + 3
-    consecutive = 1
+    consecutive = 0
 
     while starty < len(game_board):
         if 0 <= startx < len(game_board[0]) and starty >= 0:
@@ -313,7 +315,7 @@ def is_winning_move(game_state : GameState, col : int, turn) -> bool:
                     # print(turn)
                     return True
             else:
-                consecutive = 1
+                consecutive = 0
 
         startx -= 1
         starty += 1
@@ -551,16 +553,17 @@ if __name__ == '__main__':
     #     print(i)
     # print(is_winning_move(g, 1))
     g = GameState()
-    g.board = [[0, 0, 0, 0, 0, 1],
-     [0, 0, 0, 0, 1, 2],
-     [0, 0, 0, 1, 2, 2],
-     [0, 2, 1, 2, 1, 1],
-     [0, 0, 0, 0, 0, 2],
-     [0, 0, 0, 0, 0, 0],
-     [0, 0, 0, 0, 0, 1]]
+    g.turn = 1
+    g.board = [[0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0],
+               [0, 0, 2, 2, 1, 2],
+               [0, 0, 0, 2, 1, 1],
+               [0, 0, 0, 0, 2, 1],
+               [0, 0, 0, 0, 0, 1],
+               [0, 0, 0, 0, 0, 0]]
                 # [0, 0, 1, 1, 1, 1]
-    print(is_winning_move(g, 1))
-
+    print(is_winning_move(g, 2, 2))
+    # print(score_board(g))
 
 
     # x = [[1, 2, 3],
