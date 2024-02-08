@@ -1,7 +1,4 @@
 import pygame
-import time
-import math
-import random
 
 import connectfour
 import c4minimax as c4
@@ -33,6 +30,12 @@ class ConnectFour:
         """Starts at y=100, x = 50 with radius of 20, and """
         pygame.draw.rect(self._surface, (0, 0, 255), pygame.Rect(0, 100, 700, 600))
         board = _flip_board(self.game_state)
+
+        if self.turn == 1 and self.winner == -1:
+            x, y = pygame.mouse.get_pos()
+            pygame.draw.circle(self._surface, RED, (x, 50), 40)
+
+
         for j in range(6):
             y = 150 + j * 100
             for i in range(7):
@@ -53,7 +56,7 @@ class ConnectFour:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     self._running = False
-            if event.type == pygame.MOUSEBUTTONUP and self.turn == 1:
+            if event.type == pygame.MOUSEBUTTONUP and self.turn == 1 and self.winner == -1:
                 mouse_pos = pygame.mouse.get_pos()[0] // 100
                 # print(mouse_pos)
                 try:
@@ -76,25 +79,24 @@ class ConnectFour:
             self.winner = winner
             return True
 
+    def highlight_winning_combo(self):
+        winning_coords = connectfour.get_winning_pieces(self.game_state)
+        for i in range(len(self.game_state.board)):
+            for j in range(len(self.game_state.board[i])):
+                if (i, j) not in winning_coords:
+                    self.game_state.board[i][j] = 0
+
     def run(self):
         while self._running:
             self.handle_events()
 
             if self.check_win():
-                if self.winner == 1:
-                    print("RED WON")
-                elif self.winner == 2:
-                    print("YELLOW WON")
-                elif self.winner == 0:
-                    print("IT'S A TIE")
-
-                pygame.time.wait(5000)
-                break
-
-            if self.turn == 2:
-                ai_move = c4.minimax(self.game_state, depth = 6)[0]
-                self.game_state = connectfour.drop(self.game_state, ai_move)
-                self.turn = 1
+                self.highlight_winning_combo()
+            else:
+                if self.turn == 2:
+                    ai_move = c4.minimax(self.game_state, debug = True)[0]
+                    self.game_state = connectfour.drop(self.game_state, ai_move)
+                    self.turn = 1
 
             self.draw_screen()
 

@@ -2,7 +2,6 @@
 #
 # ICS 32A Fall 2022
 # Project #2: Send Me On My Way
-import math
 '''
 This module contains the game logic that underlies a Connect Four
 game, implementing such functionality as tracking the state of a game,
@@ -67,9 +66,9 @@ class GameState:
             hash_string += "".join([str(x) for x in row])
 
         return int(hash_string)
+
     def is_full(self) -> bool:
         return self.moves_left == 0
-
 
     def drop(self, col : int) -> None:
         _require_valid_column_number(col, self.board)
@@ -85,8 +84,6 @@ class GameState:
             self.turn = _opposite_turn(self.turn)
             self.moves_left -= 1
 
-
-
     def undo(self, col : int) -> None:
         if len(self.most_recent_drop_stack) > 0:
             self.board[col][self.most_recent_drop_stack.pop(-1)] = 0
@@ -94,7 +91,6 @@ class GameState:
             self.moves_left += 1
             # self.most_recent_drop
         else:
-            print("fuck")
             quit()
 
 
@@ -438,6 +434,22 @@ def _winning_sequence_begins_at(board: list[list[int]], col: int, row: int) -> b
             or _four_in_a_row(board, col, row, -1, 1)
 
 
+def compile_winning_sequence(board: list[list[int]], col: int, row: int) -> list:
+    '''
+    Returns True if a winning sequence of pieces appears on the board
+    beginning in the given column and row and extending in any of the
+    eight possible directions; returns False otherwise
+    '''
+    return compile_four_in_a_row(board, col, row, 0, 1) \
+            or compile_four_in_a_row(board, col, row, 1, 1) \
+            or compile_four_in_a_row(board, col, row, 1, 0) \
+            or compile_four_in_a_row(board, col, row, 1, -1) \
+            or compile_four_in_a_row(board, col, row, 0, -1) \
+            or compile_four_in_a_row(board, col, row, -1, -1) \
+            or compile_four_in_a_row(board, col, row, -1, 0) \
+            or compile_four_in_a_row(board, col, row, -1, 1)
+
+
 def _three_in_a_row_begins_at(board: list[list[int]], col: int, row: int) -> bool:
     '''
     Returns True if a winning sequence of pieces appears on the board
@@ -487,7 +499,8 @@ def _four_in_a_row(board: list[list[int]], col: int, row: int, coldelta: int, ro
                 return False
         return True
 
-def _possible_four_in_a_rows(board: list[list[int]], col: int, row: int, coldelta: int, rowdelta: int) -> bool:
+
+def compile_four_in_a_row(board: list[list[int]], col: int, row: int, coldelta: int, rowdelta: int) -> list:
     '''
     Returns True if a winning sequence of pieces appears on the board
     beginning in the given column and row and extending in a direction
@@ -495,15 +508,20 @@ def _possible_four_in_a_rows(board: list[list[int]], col: int, row: int, coldelt
     '''
     start_cell = board[col][row]
 
+    coords = [(col, row)]
+
     if start_cell == EMPTY:
-        return False
+        return []
     else:
         for i in range(1, 4):
             if not _is_valid_column_number(col + coldelta * i, board) \
                     or not _is_valid_row_number(row + rowdelta * i, board) \
                     or board[col + coldelta *i][row + rowdelta * i] != start_cell:
-                return False
-        return True
+                return []
+
+            coords.append((col + coldelta * i, row + rowdelta * i))
+        return coords
+
 
 def _three_in_a_row(board: list[list[int]], col: int, row: int, coldelta: int, rowdelta: int) -> bool:
     start_cell = board[col][row]
@@ -539,32 +557,24 @@ def _two_in_a_row(board: list[list[int]], col: int, row: int, coldelta: int, row
         return True
 
 
+def get_winning_pieces(game_state : GameState):
+    for y in range(len(game_state.board)):
+        for x in range(len(game_state.board[y])):
+            x = compile_winning_sequence(game_state.board, y, x)
+            if len(x) > 0:
+                return x
+
 
 
 
 
 if __name__ == '__main__':
-    # g = GameState(turn=1)
-    #
-    # for i in range(5):
-    #     g = drop(g, 1)
-    # #
-    # for i in g.board:
-    #     print(i)
-    # print(is_winning_move(g, 1))
+
     g = GameState()
     g.turn = 1
     g.board = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 1, 2], [1, 2, 2, 2, 1, 1], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0]]
-                # [0, 0, 1, 1, 1, 1]
-    # print(is_winning_move(g, 2, 2))
-    # print(score_board(g))
+
 
     print(dropable(g, 3))
 
-
-    # x = [[1, 2, 3],
-    #      [4, 5, 6],
-    #      [7, 8, 9]]
-
-    # print(compile_diagonal(x, 0, 2, -1, 1))
 

@@ -1,24 +1,10 @@
 import time
 import math
-import random
-from functools import lru_cache
 
 import connectfour
 import c4functions as c4
 
-# 0 1 2 3 4 5 6
 MOVE_ORDER = [3, 2, 4, 1, 5, 0, 6]
-
-def call_counter(func):
-    count = 0
-
-    def wrapper(*args, **kwargs):
-        nonlocal count
-        count += 1
-        print(count)
-        return func(*args, **kwargs)
-
-    return wrapper
 
 
 def get_move_col(game_state: connectfour.GameState) -> int:
@@ -100,7 +86,6 @@ def run() -> None:
 def hash_state(game_state : connectfour.GameState, maximizing : bool):
     tmp = [game_state.__hash__()]
     tmp += [int(maximizing)]
-    # print(tmp)
     return tuple(tmp)
 
 
@@ -111,8 +96,7 @@ def first_droppable_col(game_state : connectfour.GameState):
 
 
 
-@lru_cache(maxsize=None)
-def minimax(game_state : connectfour.GameState, depth = 6):
+def minimax(game_state : connectfour.GameState, debug = False):
     transposition_table = dict()
     def alphabeta(alpha:int, beta:int, maximizing_player: bool, depth:int, initial_depth : int):
         """function responsible for scoring each state of the board"""
@@ -186,10 +170,11 @@ def minimax(game_state : connectfour.GameState, depth = 6):
 
     optimal_move = (0, 0)
     d = 2
-    while d <= 8 and time.time() - start_time < 1.0:
+    while d <= 8 and time.time() - start_time < 1.0:   # iterative deepening
         optimal_move = alphabeta(alpha = -math.inf, beta = math.inf, maximizing_player = True, depth = d, initial_depth=d)
 
-        print(d, time.time(), start_time, time.time() - start_time, optimal_move, game_state.board)
+        if debug:
+            print(d, time.time(), start_time, time.time() - start_time, optimal_move, game_state.board)
         d += 2
 
     return optimal_move
